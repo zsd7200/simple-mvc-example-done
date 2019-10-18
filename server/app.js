@@ -27,11 +27,20 @@ const router = require('./router.js');
 // The string after mongodb://localhost is the database name. It can be anything you want.
 const dbURL = process.env.MONGODB_URI || 'mongodb://localhost/simpleMVCExample';
 
+
+// Newer versions of Mongoose have moved away from soon-to-be-deprecated
+// MongoDB functionality. These changes are 'opt in', so we will opt in
+// to them.
+const mongooseOptions = {
+  useNewUrlParser: true, 
+  useUnifiedTopology: true,
+}
+
 // call mongoose's connect function and pass in the url.
 // If there are any errors connecting, we will throw it and kill the server.
 // Once connected, the mongoose package will stay connected for every file
 // that requires it in this project
-mongoose.connect(dbURL, (err) => {
+mongoose.connect(dbURL, mongooseOptions, (err) => {
   if (err) {
     console.log('Could not connect to database');
     throw err;
@@ -67,7 +76,9 @@ app.use(bodyParser.json());
 // app.set sets one of the express config options
 // set up the view (V of MVC) to use handlebars
 // You can use other view engines besides handlebars
-app.engine('handlebars', expressHandlebars());
+app.engine('handlebars', expressHandlebars({
+  defaultLayout: '',
+}));
 app.set('view engine', 'handlebars');
 
 // set the views path to the template directory
