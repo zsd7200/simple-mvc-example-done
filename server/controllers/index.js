@@ -1,8 +1,9 @@
 // pull in our models. This will automatically load the index.js from that folder
 const models = require('../models');
 
-// get the Cat model
+// get the Cat model and dog model
 const Cat = models.Cat.CatModel;
+const Dog = models.Dog.DogModel;
 
 // default fake data so that we have something to work with until we make a real Cat
 const defaultData = {
@@ -42,7 +43,6 @@ const readAllCats = (req, res, callback) => {
   // The find function returns an array of matching objects
   Cat.find(callback);
 };
-
 
 // function to find a specific cat on request.
 // Express functions always receive the request and the response.
@@ -103,12 +103,12 @@ const hostPage2 = (req, res) => {
 // controller functions in Express receive the full HTTP request
 // and a pre-filled out response object to send
 const hostPage3 = (req, res) => {
-    // res.render takes a name of a page to render.
-    // These must be in the folder you specified as views in your main app.js file
-    // Additionally, you don't need .jade because you registered the file type
-    // in the app.js as jade. Calling res.render('index')
-    // actually calls index.jade. A second parameter of JSON can be passed
-    // into the jade to be used as variables with #{varName}
+  // res.render takes a name of a page to render.
+  // These must be in the folder you specified as views in your main app.js file
+  // Additionally, you don't need .jade because you registered the file type
+  // in the app.js as jade. Calling res.render('index')
+  // actually calls index.jade. A second parameter of JSON can be passed
+  // into the jade to be used as variables with #{varName}
   res.render('page3');
 };
 
@@ -247,16 +247,113 @@ const notFound = (req, res) => {
   });
 };
 
+// create a dog
+const setDog = (req, res) => {
+  // check if all required fields exist
+  if (!req.body.name || !req.body.breed || !req.body.age) {
+    // if not respond with a 400 error
+    return res.status(400).json({ error: 'Name, breed, and age are all required.' });
+  }
+
+  // dummy JSON to insert into database
+  const dogData = {
+    name: req.body.name,
+    breed: req.body.breed,
+    age: req.body.age,
+  };
+
+  // create a new object of CatModel with the object to save
+  const newDog = new Dog(dogData);
+
+  // create new save promise for the database
+  const savePromise = newDog.save();
+
+  savePromise.then(() => {
+    // set the lastAdded dog to our newest dog object.
+    // This way we can update it dynamically
+    lastAdded = newDog;
+    // return success
+    res.json({ name: lastAdded.name, breed: lastAdded.breed, age: lastAdded.age });
+  });
+
+  // if error, return it
+  savePromise.catch((err) => res.json({ err }));
+
+  return res;
+};
+
+// search/update dog
+const updateDog = (req, res) => {
+  // body since this is a post request instead of a get
+  if (!req.body.name) {
+    return res.json({ error: 'Name is required to perform a search' });
+  }
+
+  return Dog.findByName(req.body.name, (err, doc) => {
+    // errs, handle them
+    if (err) {
+      return res.json({ err }); // if error, return it
+    }
+
+    // if no matches, let them know
+    // (does not necessarily have to be an error since technically it worked correctly)
+    if (!doc) {
+      return res.json({ error: 'No dogs found' });
+    }
+
+    const tempDog = doc;
+
+    // increment age of found dog
+    tempDog.age++;
+
+    const updatePromise = tempDog.save();
+
+    updatePromise.then(() => res.json({
+      name: tempDog.name,
+      breed: tempDog.breed,
+      age: tempDog.age,
+    }));
+
+    updatePromise.catch((error) => res.json({ error }));
+
+    // eslint needs a return here
+    return true;
+  });
+};
+
+// find all dogs on request (for page 4)
+const readAllDogs = (req, res, callback) => {
+  Dog.find(callback);
+};
+
+// hosting page 4
+const hostPage4 = (req, res) => {
+  const callback = (err, docs) => {
+    if (err) {
+      return res.json({ err }); // if error, return it
+    }
+
+    // return success
+    return res.render('page4', { dogs: docs });
+  };
+
+  readAllDogs(req, res, callback);
+};
+
 // export the relevant public controller functions
 module.exports = {
   index: hostIndex,
   page1: hostPage1,
   page2: hostPage2,
   page3: hostPage3,
+  page4: hostPage4,
   readCat,
   getName,
   setName,
   updateLast,
   searchName,
   notFound,
+  setDog,
+  updateDog,
+  readAllDogs,
 };
